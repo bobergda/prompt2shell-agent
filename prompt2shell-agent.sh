@@ -6,6 +6,7 @@ VENV_DIR="$SCRIPT_DIR/.venv"
 REQ_FILE="$SCRIPT_DIR/requirements.txt"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 INSTALL_DEPS=0
+CREATED_VENV=0
 FORWARDED_ARGS=()
 
 for arg in "$@"; do
@@ -17,19 +18,20 @@ for arg in "$@"; do
 done
 
 if [ ! -d "$VENV_DIR" ]; then
-  echo "[prompt2shell-agent] Tworze virtualenv w $VENV_DIR"
+  echo "[prompt2shell-agent] Creating virtualenv in $VENV_DIR"
   "$PYTHON_BIN" -m venv "$VENV_DIR"
+  CREATED_VENV=1
 fi
 
 # shellcheck disable=SC1090
 source "$VENV_DIR/bin/activate"
 
-if [ "$INSTALL_DEPS" -eq 1 ]; then
+if [ "$INSTALL_DEPS" -eq 1 ] || [ "$CREATED_VENV" -eq 1 ]; then
   if [ -f "$REQ_FILE" ]; then
-    echo "[prompt2shell-agent] Instaluje zaleznosci z requirements.txt"
-    pip install -r "$REQ_FILE"
+    echo "[prompt2shell-agent] Installing dependencies from requirements.txt"
+    python -m pip install -r "$REQ_FILE"
   else
-    echo "[prompt2shell-agent] Brak $REQ_FILE - pomijam instalacje zaleznosci" >&2
+    echo "[prompt2shell-agent] Missing $REQ_FILE - skipping dependency installation" >&2
   fi
 fi
 
