@@ -1,0 +1,338 @@
+import json
+import os
+import sys
+
+from openai import OpenAI
+
+from .common import colored
+from .os_helper import OSHelper
+
+
+class OpenAIHelper:
+    """A class that handles OpenAI Responses API calls."""
+
+    def __init__(self, model_name="gpt-4o-mini", max_output_tokens=1200, interaction_logger=None):
+        """Initialize OpenAI helper with server-side conversation memory."""
+        self.api_key = os.getenv("OPENAI_API_KEY", "")
+        if self.api_key == "":
+            print(colored("Error: OPENAI_API_KEY is not set", "red"), file=sys.stderr)
+            raise SystemExit(1)
+
+        self.client = OpenAI(api_key=self.api_key)
+        self.model_name = model_name
+        self.max_output_tokens = max_output_tokens
+        self.last_response_id = None
+        self.interaction_logger = interaction_logger
+        self.last_usage_summary = None
+        self.session_usage_summary = self._empty_usage_summary()
+        self._active_usage_summary = None
+
+        self.os_name, self.shell_name = OSHelper.get_os_and_shell_info()
+        self.instructions = (
+            "You are a shell command assistant. Prefer safe, idempotent commands first. "
+            "For any command proposal, return it through the get_commands function. "
+            "Include a short description for each command. "
+            "If no command is needed, return an empty commands list with a helpful response."
+        )
+
+        self.tools = [
+            {
+                "type": "function",
+                "name": "get_commands",
+                "description": (
+                    f"Return a list of {self.shell_name} commands for an {self.os_name} machine"
+                ),
+                "strict": False,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "commands": {
+                            "type": "array",
+                            "description": "List of shell commands to execute",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "command": {
+                                        "type": "string",
+                                        "description": "A valid command string",
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "Description of the command",
+                                    },
+                                },
+                                "required": ["command"],
+                                "additionalProperties": False,
+                            },
+                        },
+                        "response": {
+                            "type": "string",
+                            "description": "Human-readable explanation for the user",
+                        },
+                    },
+                    "required": ["commands", "response"],
+                    "additionalProperties": False,
+                },
+            }
+        ]
+
+    @staticmethod
+    def _item_value(item, key, default=None):
+        if isinstance(item, dict):
+            return item.get(key, default)
+        return getattr(item, key, default)
+
+    @staticmethod
+    def _empty_usage_summary():
+        return {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "api_calls": 0}
+
+    @staticmethod
+    def _safe_int(value):
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return 0
+
+    def _begin_usage_capture(self):
+        self._active_usage_summary = self._empty_usage_summary()
+
+    def _finish_usage_capture(self):
+        if self._active_usage_summary is None:
+            self.last_usage_summary = None
+        else:
+            self.last_usage_summary = dict(self._active_usage_summary)
+        self._active_usage_summary = None
+        return self.last_usage_summary
+
+    def _extract_usage_summary(self, response):
+        usage = self._item_value(response, "usage")
+        if usage is None:
+            return self._empty_usage_summary()
+        return {
+            "input_tokens": self._safe_int(self._item_value(usage, "input_tokens", 0)),
+            "output_tokens": self._safe_int(self._item_value(usage, "output_tokens", 0)),
+            "total_tokens": self._safe_int(self._item_value(usage, "total_tokens", 0)),
+            "api_calls": 1,
+        }
+
+    def _record_usage_summary(self, usage_summary):
+        if not isinstance(usage_summary, dict):
+            return
+        for key in ("input_tokens", "output_tokens", "total_tokens", "api_calls"):
+            self.session_usage_summary[key] += self._safe_int(usage_summary.get(key, 0))
+            if self._active_usage_summary is not None:
+                self._active_usage_summary[key] += self._safe_int(usage_summary.get(key, 0))
+
+    def get_last_usage_summary(self):
+        if self.last_usage_summary is None:
+            return None
+        return dict(self.last_usage_summary)
+
+    def get_session_usage_summary(self):
+        return dict(self.session_usage_summary)
+
+    def _log_api_event(self, event_name, payload):
+        if self.interaction_logger is None:
+            return
+        self.interaction_logger.log_event(event_name, payload)
+
+    def _create_response(self, input_data, tool_choice="auto"):
+        request = {
+            "model": self.model_name,
+            "instructions": self.instructions,
+            "input": input_data,
+            "tools": self.tools,
+            "tool_choice": tool_choice,
+            "parallel_tool_calls": False,
+            "max_output_tokens": self.max_output_tokens,
+        }
+        if self.last_response_id is not None:
+            request["previous_response_id"] = self.last_response_id
+
+        self._log_api_event(
+            "api_request",
+            {
+                "model": request["model"],
+                "tool_choice": request["tool_choice"],
+                "has_previous_response_id": "previous_response_id" in request,
+                "input": input_data,
+            },
+        )
+
+        response = self.client.responses.create(**request)
+        self.last_response_id = response.id
+        usage_summary = self._extract_usage_summary(response)
+        self._record_usage_summary(usage_summary)
+        output_items = []
+        for item in self._item_value(response, "output", []) or []:
+            output_items.append(
+                {
+                    "type": self._item_value(item, "type"),
+                    "id": self._item_value(item, "id"),
+                    "name": self._item_value(item, "name"),
+                    "call_id": self._item_value(item, "call_id"),
+                }
+            )
+        self._log_api_event(
+            "api_response",
+            {
+                "response_id": response.id,
+                "output_text": self._response_text(response),
+                "output_items": output_items,
+                "usage": usage_summary,
+            },
+        )
+        return response
+
+    def _extract_function_calls(self, response):
+        calls = []
+        for item in self._item_value(response, "output", []) or []:
+            if self._item_value(item, "type") != "function_call":
+                continue
+            call_id = self._item_value(item, "call_id") or self._item_value(item, "id")
+            calls.append(
+                {
+                    "name": self._item_value(item, "name"),
+                    "arguments": self._item_value(item, "arguments", "{}"),
+                    "call_id": call_id,
+                }
+            )
+        return calls
+
+    @staticmethod
+    def _sanitize_commands_payload(payload):
+        if not isinstance(payload, dict):
+            return None
+
+        commands = payload.get("commands")
+        if not isinstance(commands, list):
+            return None
+
+        sanitized = []
+        for command in commands:
+            if not isinstance(command, dict):
+                continue
+            command_text = command.get("command")
+            if not isinstance(command_text, str) or command_text.strip() == "":
+                continue
+            description = command.get("description")
+            sanitized.append(
+                {
+                    "command": command_text,
+                    "description": description if isinstance(description, str) else "",
+                }
+            )
+
+        return {
+            "commands": sanitized,
+            "response": payload.get("response", "") if isinstance(payload.get("response", ""), str) else "",
+        }
+
+    @staticmethod
+    def _response_text(response):
+        text = getattr(response, "output_text", None)
+        return text.strip() if isinstance(text, str) and text.strip() else None
+
+    def _resolve_function_calls(self, response):
+        current_response = response
+        commands_payload = None
+
+        for _ in range(3):
+            calls = self._extract_function_calls(current_response)
+            if not calls:
+                break
+
+            outputs = []
+            for call in calls:
+                if call["name"] != "get_commands":
+                    if not call["call_id"]:
+                        continue
+                    outputs.append(
+                        {
+                            "type": "function_call_output",
+                            "call_id": call["call_id"],
+                            "output": json.dumps({"status": "ignored", "reason": "Unsupported function"}),
+                        }
+                    )
+                    continue
+
+                try:
+                    parsed = json.loads(call["arguments"])
+                    parsed = self._sanitize_commands_payload(parsed)
+                    if parsed is None:
+                        raise ValueError("Invalid get_commands payload")
+                    commands_payload = parsed
+                    self._log_api_event("get_commands_payload", parsed)
+                    if not call["call_id"]:
+                        continue
+                    outputs.append(
+                        {
+                            "type": "function_call_output",
+                            "call_id": call["call_id"],
+                            "output": json.dumps({"status": "ok", "commands_count": len(parsed["commands"])}),
+                        }
+                    )
+                except Exception as exc:  # pylint: disable=broad-except
+                    if not call["call_id"]:
+                        continue
+                    outputs.append(
+                        {
+                            "type": "function_call_output",
+                            "call_id": call["call_id"],
+                            "output": json.dumps({"status": "error", "error": str(exc)}),
+                        }
+                    )
+
+            current_response = self._create_response(outputs, tool_choice="none")
+
+        return current_response, commands_payload
+
+    def get_commands(self, prompt):
+        """Return command suggestions using forced function calling."""
+        self._begin_usage_capture()
+        try:
+            response = self._create_response(
+                input_data=prompt,
+                tool_choice={"type": "function", "name": "get_commands"},
+            )
+            _, commands_payload = self._resolve_function_calls(response)
+            return commands_payload
+        except Exception as exc:  # pylint: disable=broad-except
+            print(colored(f"Error: {exc}", "red"), file=sys.stderr)
+            return None
+        finally:
+            self._finish_usage_capture()
+
+    def send_commands_outputs(self, outputs, execution_summary=None):
+        """Send command outputs for analysis and optional follow-up commands."""
+        self._begin_usage_capture()
+        execution_payload = {
+            "execution_summary": execution_summary if isinstance(execution_summary, list) else [],
+            "outputs": outputs if isinstance(outputs, list) else [],
+        }
+        execution_json = json.dumps(execution_payload, ensure_ascii=False)
+        prompt_text = (
+            "Analyze the following shell execution report and explain what happened. "
+            "If useful, propose next steps via get_commands. "
+            "If nothing was executed, clearly state that and do not propose follow-up commands.\n\n"
+            f"Execution report:\n{execution_json}"
+        )
+
+        try:
+            response = self._create_response(input_data=prompt_text, tool_choice="auto")
+            final_response, commands_payload = self._resolve_function_calls(response)
+
+            response_text = self._response_text(final_response)
+            if response_text is None and commands_payload is not None:
+                response_text = commands_payload.get("response") or None
+
+            next_commands = None
+            if commands_payload is not None:
+                next_commands = commands_payload.get("commands") or None
+
+            return response_text, next_commands
+        except Exception as exc:  # pylint: disable=broad-except
+            print(colored(f"Error: {exc}", "red"), file=sys.stderr)
+            return None, None
+        finally:
+            self._finish_usage_capture()

@@ -7,6 +7,7 @@ REQ_FILE="$SCRIPT_DIR/requirements.txt"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 INSTALL_DEPS=0
 CREATED_VENV=0
+NEED_DEPS=0
 FORWARDED_ARGS=()
 
 for arg in "$@"; do
@@ -26,12 +27,26 @@ fi
 # shellcheck disable=SC1090
 source "$VENV_DIR/bin/activate"
 
-if [ "$INSTALL_DEPS" -eq 1 ] || [ "$CREATED_VENV" -eq 1 ]; then
+if ! python - <<'PY'
+import importlib.util
+
+required_modules = ("openai", "termcolor", "distro", "prompt_toolkit")
+missing = [name for name in required_modules if importlib.util.find_spec(name) is None]
+if missing:
+    print("[prompt2shell-agent] Missing Python modules: " + ", ".join(missing))
+    raise SystemExit(1)
+PY
+then
+  NEED_DEPS=1
+fi
+
+if [ "$INSTALL_DEPS" -eq 1 ] || [ "$CREATED_VENV" -eq 1 ] || [ "$NEED_DEPS" -eq 1 ]; then
   if [ -f "$REQ_FILE" ]; then
     echo "[prompt2shell-agent] Installing dependencies from requirements.txt"
     python -m pip install -r "$REQ_FILE"
   else
-    echo "[prompt2shell-agent] Missing $REQ_FILE - skipping dependency installation" >&2
+    echo "[prompt2shell-agent] Missing $REQ_FILE - cannot install dependencies" >&2
+    exit 1
   fi
 fi
 
