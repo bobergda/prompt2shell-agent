@@ -34,6 +34,14 @@ This version uses the OpenAI **Responses API** with server-side conversation cha
    - `tokens on`, `tokens off`, `tokens`
    - `e` to enter manual command mode, `q` to quit
 
+Script options:
+
+```shell
+./prompt2shell-agent.sh --tests
+./prompt2shell-agent.sh --update-requirements
+./prompt2shell-agent.sh --help
+```
+
 Optional environment variables:
 
 ```shell
