@@ -397,21 +397,48 @@ class Application:
                 break
             commands = next_commands
 
-    def run(self):
+    def _process_user_input(self, user_input):
+        if user_input.lower() == "q":
+            return False
+        self.interaction_logger.log("user", user_input)
+        if self._handle_runtime_command(user_input):
+            return True
+        self.interpret_and_execute_command(user_input)
+        return True
+
+    def run(self, initial_prompt=None, exit_after_initial_prompt=False):
         """Runs the application."""
         os_name, shell_name = self.openai_helper.os_name, self.openai_helper.shell_name
         print(colored(f"Your current environment: Shell={shell_name}, OS={os_name}", "green"))
         print(colored("Type 'e' to enter manual command mode or 'q' to quit.\n", "green"))
 
+        if isinstance(initial_prompt, str) and initial_prompt.strip() != "":
+            try:
+                if not self._process_user_input(initial_prompt):
+                    return
+            except subprocess.CalledProcessError as exc:
+                print(
+                    colored(f"Error: Command failed with exit code {exc.returncode}: {exc.output}", "red"),
+                    file=sys.stderr,
+                )
+            except KeyboardInterrupt:
+                if exit_after_initial_prompt:
+                    return
+            except EOFError:
+                return
+            except Exception as exc:  # pylint: disable=broad-except
+                print(colored(f"Error of type {type(exc).__name__}: {exc}", "red"))
+                print(colored("Exiting...", "yellow"))
+                return
+
+            if exit_after_initial_prompt:
+                return
+
         while True:
             try:
                 user_input = self.session.prompt(ANSI(colored(f"{APP_NAME}: ", "green")))
-                if user_input.lower() == "q":
+                if not self._process_user_input(user_input):
                     break
-                self.interaction_logger.log("user", user_input)
-                if self._handle_runtime_command(user_input):
-                    continue
-                self.interpret_and_execute_command(user_input)
             except subprocess.CalledProcessError as exc:
                 print(
                     colored(f"Error: Command failed with exit code {exc.returncode}: {exc.output}", "red"),

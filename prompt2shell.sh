@@ -20,21 +20,34 @@ RUN_TESTS=0
 UPDATE_REQUIREMENTS=0
 SHOW_HELP=0
 ADD_ALIAS=0
+ONCE_MODE=0
+END_OF_OPTIONS=0
 FORWARDED_ARGS=()
 
 for arg in "$@"; do
+  if [ "$END_OF_OPTIONS" -eq 1 ]; then
+    FORWARDED_ARGS+=("$arg")
+    continue
+  fi
+
   case "$arg" in
-    install|--install)
+    --)
+      END_OF_OPTIONS=1
+      ;;
+    --install)
       INSTALL_DEPS=1
       ;;
-    tests|--tests)
+    --tests)
       RUN_TESTS=1
       ;;
-    update-requirements|--update-requirements)
+    --update-requirements)
       UPDATE_REQUIREMENTS=1
       ;;
-    add-alias|--add-alias)
+    --add-alias)
       ADD_ALIAS=1
+      ;;
+    --once)
+      ONCE_MODE=1
       ;;
     --model=*)
       MODEL_VALUE="${arg#*=}"
@@ -42,11 +55,17 @@ for arg in "$@"; do
     --tokens=*)
       TOKENS_VALUE="${arg#*=}"
       ;;
-    -h|--help|help)
+    -h|--help)
       SHOW_HELP=1
+      ;;
+    -*)
+      echo "[prompt2shell] Unknown option: $arg" >&2
+      echo "[prompt2shell] Use --help to list options. For prompts starting with '-', use: ./prompt2shell.sh -- <prompt>" >&2
+      exit 1
       ;;
     *)
       FORWARDED_ARGS+=("$arg")
+      END_OF_OPTIONS=1
       ;;
   esac
 done
@@ -102,16 +121,21 @@ add_p2s_alias() {
 
 if [ "$SHOW_HELP" -eq 1 ]; then
   cat <<'EOF'
-Usage: ./prompt2shell.sh [options] [-- app_args...]
+Usage: ./prompt2shell.sh [options] [--] [prompt...]
 
 Options:
   --install               Create venv (if needed) and install deps from requirements.txt
   --tests                 Run unit tests (python -m unittest discover -s tests -v)
   --update-requirements   Upgrade required packages in .venv and rewrite requirements.txt
   --add-alias             Add/update alias p2s in ~/.bashrc for this project launcher
+  --once                  Exit after processing the initial CLI prompt
   --model=NAME            Set OPENAI_MODEL for this run (default: gpt-4o-mini)
   --tokens=NUMBER         Set PROMPT2SHELL_MAX_OUTPUT_TOKENS for this run (default: 1200)
   --help                  Show this help message
+
+Prompt mode:
+  ./prompt2shell.sh "find 3 largest files"
+  ./prompt2shell.sh -- "prompt that starts with -"
 EOF
   exit 0
 fi
@@ -191,4 +215,5 @@ fi
 
 OPENAI_MODEL="$MODEL_VALUE" \
 PROMPT2SHELL_MAX_OUTPUT_TOKENS="$TOKENS_VALUE" \
+PROMPT2SHELL_ONCE="$ONCE_MODE" \
 exec python "$SCRIPT_DIR/prompt2shell.py" "${FORWARDED_ARGS[@]}"
