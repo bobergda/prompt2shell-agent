@@ -33,14 +33,7 @@ def colored(text, color=None, on_color=None, attrs=None):
     return term_colored(text, mapped_color, on_color=on_color, attrs=attrs)
 
 
-def getenv_with_legacy(primary_key, legacy_key, default=None):
-    value = os.getenv(primary_key)
-    if value is not None:
-        return value
-    return os.getenv(legacy_key, default)
-
-
-def env_flag_with_legacy(primary_key, legacy_key, default=False):
+def env_flag(key, default=False):
     default_raw = "1" if default else "0"
-    raw_value = str(getenv_with_legacy(primary_key, legacy_key, default_raw)).strip().lower()
+    raw_value = str(os.getenv(key, default_raw)).strip().lower()
     return raw_value not in {"0", "false", "off", "no"}

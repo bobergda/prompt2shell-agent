@@ -5,7 +5,7 @@ import threading
 from datetime import datetime, timezone
 
 from .command_helper import CommandHelper
-from .common import colored, env_flag_with_legacy, getenv_with_legacy
+from .common import colored, env_flag
 
 
 class InteractionLogger:
@@ -14,21 +14,13 @@ class InteractionLogger:
     def __init__(self, log_file=None, enabled=None):
         app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         default_path = os.path.join(app_dir, "logs", "prompt2shell.log")
-        configured_path = log_file or getenv_with_legacy(
-            "PROMPT2SHELL_LOG_FILE",
-            "GPT_SHELL_LOG_FILE",
-            default_path,
-        )
+        configured_path = log_file or os.getenv("PROMPT2SHELL_LOG_FILE", default_path)
         resolved_path = os.path.expanduser(configured_path)
         if not os.path.isabs(resolved_path):
             resolved_path = os.path.join(app_dir, resolved_path)
 
         if enabled is None:
-            self.enabled = env_flag_with_legacy(
-                "PROMPT2SHELL_LOG_ENABLED",
-                "GPT_SHELL_LOG_ENABLED",
-                False,
-            )
+            self.enabled = env_flag("PROMPT2SHELL_LOG_ENABLED", False)
         else:
             self.enabled = bool(enabled)
 

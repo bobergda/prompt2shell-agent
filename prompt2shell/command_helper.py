@@ -5,7 +5,7 @@ import signal
 import subprocess
 import threading
 
-from .common import colored, getenv_with_legacy
+from .common import colored
 
 
 class CommandHelper:
@@ -101,11 +101,7 @@ class CommandHelper:
 
     @staticmethod
     def _command_timeout_seconds():
-        raw_timeout = getenv_with_legacy(
-            "PROMPT2SHELL_COMMAND_TIMEOUT",
-            "GPT_SHELL_COMMAND_TIMEOUT",
-            "300",
-        )
+        raw_timeout = os.getenv("PROMPT2SHELL_COMMAND_TIMEOUT", "300")
         try:
             timeout = int(raw_timeout)
         except (TypeError, ValueError):

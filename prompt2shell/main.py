@@ -2,17 +2,12 @@ import os
 
 from .application import Application
 from .command_helper import CommandHelper
-from .common import getenv_with_legacy
 from .interaction_logger import InteractionLogger
 from .openai_helper import OpenAIHelper
 
 
 def build_application():
-    max_output_tokens_raw = getenv_with_legacy(
-        "PROMPT2SHELL_MAX_OUTPUT_TOKENS",
-        "GPT_SHELL_MAX_OUTPUT_TOKENS",
-        "1200",
-    )
+    max_output_tokens_raw = os.getenv("PROMPT2SHELL_MAX_OUTPUT_TOKENS", "1200")
     try:
         max_output_tokens = int(max_output_tokens_raw)
         if max_output_tokens <= 0:

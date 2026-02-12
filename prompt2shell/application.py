@@ -5,7 +5,7 @@ from prompt_toolkit import ANSI, PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.history import FileHistory
 
-from .common import APP_NAME, colored, env_flag_with_legacy
+from .common import APP_NAME, colored, env_flag
 
 
 class Application:
@@ -33,15 +33,15 @@ class Application:
 
     @staticmethod
     def _read_safe_mode_from_env():
-        return env_flag_with_legacy("PROMPT2SHELL_SAFE_MODE", "GPT_SHELL_SAFE_MODE", True)
+        return env_flag("PROMPT2SHELL_SAFE_MODE", True)
 
     @staticmethod
     def _read_safe_mode_strict_from_env():
-        return env_flag_with_legacy("PROMPT2SHELL_SAFE_MODE_STRICT", "GPT_SHELL_SAFE_MODE_STRICT", False)
+        return env_flag("PROMPT2SHELL_SAFE_MODE_STRICT", False)
 
     @staticmethod
     def _read_show_tokens_from_env():
-        return env_flag_with_legacy("PROMPT2SHELL_SHOW_TOKENS", "GPT_SHELL_SHOW_TOKENS", True)
+        return env_flag("PROMPT2SHELL_SHOW_TOKENS", True)
 
     def _safe_mode_status_text(self):
         return "ON" if self.safe_mode_enabled else "OFF"
