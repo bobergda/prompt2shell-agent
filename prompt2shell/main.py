@@ -65,8 +65,6 @@ def main(argv=None):
         initial_prompt = piped_input
 
     once_mode = env_flag("PROMPT2SHELL_ONCE", False)
-    if piped_input is not None and os.getenv("PROMPT2SHELL_ONCE") is None:
-        once_mode = True
 
     build_application().run(initial_prompt=initial_prompt, exit_after_initial_prompt=once_mode)
 

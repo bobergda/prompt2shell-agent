@@ -51,7 +51,7 @@ class MainEntrypointTests(unittest.TestCase):
             exit_after_initial_prompt=True,
         )
 
-    def test_main_uses_piped_input_as_initial_prompt_and_auto_once(self):
+    def test_main_uses_piped_input_as_initial_prompt_without_auto_once(self):
         fake_app = mock.Mock()
         with self._stdin_patch(is_tty=False, text="file1\nfile2\n"):
             with mock.patch("prompt2shell.main.build_application", return_value=fake_app):
@@ -59,7 +59,7 @@ class MainEntrypointTests(unittest.TestCase):
 
         fake_app.run.assert_called_once_with(
             initial_prompt="file1\nfile2",
-            exit_after_initial_prompt=True,
+            exit_after_initial_prompt=False,
         )
 
     def test_main_combines_prompt_args_with_piped_input(self):
@@ -70,7 +70,7 @@ class MainEntrypointTests(unittest.TestCase):
 
         fake_app.run.assert_called_once_with(
             initial_prompt="summarize\n\nPiped input:\na.txt\nb.txt",
-            exit_after_initial_prompt=True,
+            exit_after_initial_prompt=False,
         )
 
     def test_main_respects_explicit_once_env_value_when_piped(self):

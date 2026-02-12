@@ -34,7 +34,7 @@ This version uses the OpenAI **Responses API** with server-side conversation cha
    ```shell
    ./prompt2shell.sh -o "find the 3 biggest files in this project"
    ```
-   Pipe mode (stdin is used as prompt and exits after one run):
+   Pipe mode (stdin is used as prompt):
    ```shell
    ls | ./prompt2shell.sh
    ls | ./prompt2shell.sh "summarize this output"
