@@ -22,6 +22,12 @@ This version uses the OpenAI **Responses API** with server-side conversation cha
    ./prompt2shell.sh --install
    export OPENAI_API_KEY="your-api-key"
    ```
+   You can also keep local settings in `.env` (auto-loaded by `prompt2shell.sh`):
+   ```dotenv
+   OPENAI_API_KEY="your-api-key"
+   OPENAI_MODEL="gpt-4o-mini"
+   PROMPT2SHELL_MAX_OUTPUT_TOKENS=1200
+   ```
 2. Run:
    ```shell
    ./prompt2shell.sh

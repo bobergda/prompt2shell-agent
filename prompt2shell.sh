@@ -6,6 +6,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_DIR="$SCRIPT_DIR/.venv"
 REQ_FILE="$SCRIPT_DIR/requirements.txt"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
+ENV_FILE="$SCRIPT_DIR/.env"
+
+# Load optional local environment overrides from .env.
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+fi
 
 # Default values for environment variables
 export PROMPT2SHELL_LOG_ENABLED=1
