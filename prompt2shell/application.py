@@ -415,6 +415,7 @@ class Application:
             print(colored("Type 'e' to enter manual command mode or 'q' to quit.\n", "green"))
 
         if has_initial_prompt:
+            print(colored(f"Initial prompt: {initial_prompt}", "green"))
             try:
                 if not self._process_user_input(initial_prompt):
                     return

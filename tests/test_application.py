@@ -35,6 +35,7 @@ class ApplicationRunBannerTests(unittest.TestCase):
 
         printed_lines = [str(call.args[0]) for call in print_mock.call_args_list if call.args]
         self.assertFalse(any("Type 'e' to enter manual command mode or 'q' to quit." in line for line in printed_lines))
+        self.assertTrue(any("Initial prompt: show files" in line for line in printed_lines))
         app._process_user_input.assert_called_once_with("show files")
 
 
