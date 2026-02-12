@@ -142,6 +142,32 @@ class ApplicationCommandSelectionTests(unittest.TestCase):
         app._prompt_command_action.assert_called_once_with(1, 2)
         app.command_helper.run_shell_command.assert_called_once_with("echo two")
         app.openai_helper.send_commands_outputs.assert_called_once()
+        call = app.openai_helper.send_commands_outputs.call_args
+        self.assertEqual(len(call.args), 1)
+        self.assertEqual(len(call.args[0]), 1)
+        self.assertEqual(call.kwargs.get("allow_follow_up_commands"), False)
+
+    def test_execute_commands_analyzes_each_executed_command_immediately(self):
+        app = self._build_exec_app()
+        app._prompt_command_action = mock.Mock(side_effect=["r", "r"])
+        app.command_helper.run_shell_command.side_effect = [
+            {"returncode": 0, "timed_out": False, "interrupted": False, "stdout": "one"},
+            {"returncode": 0, "timed_out": False, "interrupted": False, "stdout": "two"},
+        ]
+
+        commands = [
+            {"command": "echo one", "description": "first"},
+            {"command": "echo two", "description": "second"},
+        ]
+        with mock.patch("builtins.print"):
+            app.execute_commands(commands)
+
+        self.assertEqual(app.openai_helper.send_commands_outputs.call_count, 2)
+        for call in app.openai_helper.send_commands_outputs.call_args_list:
+            self.assertEqual(len(call.args), 1)
+            self.assertEqual(len(call.args[0]), 1)
+            self.assertEqual(call.kwargs.get("allow_follow_up_commands"), False)
+        self.assertEqual(app._print_token_usage.call_count, 2)
 
 
 if __name__ == "__main__":

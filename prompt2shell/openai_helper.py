@@ -373,7 +373,7 @@ class OpenAIHelper:
         finally:
             self._finish_usage_capture()
 
-    def send_commands_outputs(self, outputs, execution_summary=None):
+    def send_commands_outputs(self, outputs, execution_summary=None, allow_follow_up_commands=True):
         """Send command outputs for analysis and optional follow-up commands."""
         self._begin_usage_capture()
         execution_payload = {
@@ -381,15 +381,26 @@ class OpenAIHelper:
             "outputs": outputs if isinstance(outputs, list) else [],
         }
         execution_json = json.dumps(execution_payload, ensure_ascii=False)
-        prompt_text = (
-            "Analyze the following shell execution report and explain what happened. "
-            "If useful, propose next steps via get_commands. "
-            "If nothing was executed, clearly state that and do not propose follow-up commands.\n\n"
-            f"Execution report:\n{execution_json}"
-        )
+        if allow_follow_up_commands:
+            prompt_text = (
+                "Analyze the following shell execution report and explain what happened. "
+                "If useful, propose next steps via get_commands. "
+                "If nothing was executed, clearly state that and do not propose follow-up commands.\n\n"
+                f"Execution report:\n{execution_json}"
+            )
+            tool_choice = "auto"
+        else:
+            prompt_text = (
+                "Analyze the following shell execution report and explain what happened. "
+                "Do not propose or return any new commands. "
+                "Do not call get_commands. "
+                "Provide only an explanation for the user.\n\n"
+                f"Execution report:\n{execution_json}"
+            )
+            tool_choice = "none"
 
         try:
-            response = self._create_response(input_data=prompt_text, tool_choice="auto")
+            response = self._create_response(input_data=prompt_text, tool_choice=tool_choice)
             final_response, commands_payload = self._resolve_function_calls(response)
 
             response_text = self._response_text(final_response)
@@ -397,7 +408,7 @@ class OpenAIHelper:
                 response_text = commands_payload.get("response") or None
 
             next_commands = None
-            if commands_payload is not None:
+            if allow_follow_up_commands and commands_payload is not None:
                 next_commands = commands_payload.get("commands") or None
 
             return response_text, next_commands

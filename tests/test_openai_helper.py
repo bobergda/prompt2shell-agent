@@ -171,6 +171,42 @@ class OpenAIHelperTests(unittest.TestCase):
         self.assertIn("respond in Polish", instructions)
         self.assertNotIn("respond in English", instructions)
 
+    def test_send_commands_outputs_analysis_only_disables_follow_up_commands(self):
+        fake_responses = [
+            types.SimpleNamespace(
+                id="resp_1",
+                usage=types.SimpleNamespace(input_tokens=5, output_tokens=7, total_tokens=12),
+                output=[],
+                output_text="The command listed files successfully.",
+            )
+        ]
+
+        class FakeResponsesAPI:
+            def __init__(self, queue):
+                self.queue = queue
+                self.calls = []
+
+            def create(self, **kwargs):
+                self.calls.append(kwargs)
+                return self.queue.pop(0)
+
+        fake_api = FakeResponsesAPI(fake_responses)
+        fake_client = types.SimpleNamespace(responses=fake_api)
+
+        with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=False):
+            with mock.patch("prompt2shell.openai_helper.OpenAI", return_value=fake_client):
+                helper = OpenAIHelper(model_name="gpt-test", max_output_tokens=200)
+                response_text, next_commands = helper.send_commands_outputs(
+                    outputs=[{"returncode": 0, "stdout": "file1\nfile2"}],
+                    execution_summary=[{"command": "ls", "status": "executed"}],
+                    allow_follow_up_commands=False,
+                )
+
+        self.assertEqual(response_text, "The command listed files successfully.")
+        self.assertIsNone(next_commands)
+        self.assertEqual(fake_api.calls[0]["tool_choice"], "none")
+        self.assertIn("Do not propose or return any new commands.", fake_api.calls[0]["input"])
+
 
 if __name__ == "__main__":
     unittest.main()

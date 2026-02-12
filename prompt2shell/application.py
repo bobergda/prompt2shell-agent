@@ -337,124 +337,118 @@ class Application:
 
     def execute_commands(self, commands):
         """Executes the commands."""
-        while commands:
-            self._print_commands_batch(commands)
-            self.interaction_logger.log_event("commands_batch", commands)
+        self._print_commands_batch(commands)
+        self.interaction_logger.log_event("commands_batch", commands)
 
-            outputs = []
-            execution_summary = []
-            run_all_remaining = False
-            stop_after_batch = False
-            selected_command_index = None
+        executed_any = False
+        execution_summary = []
+        run_all_remaining = False
+        selected_command_index = None
 
-            for index, command in enumerate(commands, start=1):
-                command_str = command.get("command", "").strip()
-                if command_str == "":
-                    execution_summary.append({"command": "", "status": "skipped_empty"})
-                    continue
+        for index, command in enumerate(commands, start=1):
+            command_str = command.get("command", "").strip()
+            if command_str == "":
+                execution_summary.append({"command": "", "status": "skipped_empty"})
+                continue
 
-                if run_all_remaining:
-                    action = "r"
-                elif selected_command_index is not None and index < selected_command_index:
-                    action = "s"
-                elif selected_command_index is not None and index == selected_command_index:
-                    action = "r"
-                    selected_command_index = None
-                else:
+            if run_all_remaining:
+                action = "r"
+            elif selected_command_index is not None and index < selected_command_index:
+                action = "s"
+            elif selected_command_index is not None and index == selected_command_index:
+                action = "r"
+                selected_command_index = None
+            else:
+                action = self._prompt_command_action(index, len(commands))
+
+            while action.isdigit():
+                selected_index = int(action)
+                if selected_index < index:
+                    print(colored(f"Command {selected_index} was already processed; choose current or later.", "yellow"))
                     action = self._prompt_command_action(index, len(commands))
-
-                while action.isdigit():
-                    selected_index = int(action)
-                    if selected_index < index:
-                        print(colored(f"Command {selected_index} was already processed; choose current or later.", "yellow"))
-                        action = self._prompt_command_action(index, len(commands))
-                        continue
-                    if selected_index > index:
-                        selected_command_index = selected_index
-                        print(colored(f"Selecting command {selected_index}; skipping command {index}.", "yellow"))
-                        action = "s"
-                    else:
-                        action = "r"
-                    break
-
-                if action == "q":
-                    stop_after_batch = True
-                    execution_summary.append({"command": command_str, "status": "stopped_by_user"})
-                    break
-
-                if action == "a":
-                    run_all_remaining = True
-                    action = "r"
-
-                if action == "e":
-                    edited_command = self.session.prompt(
-                        ANSI(colored("Enter the modified command: ", "cyan")),
-                        default=command_str,
-                    ).strip()
-                    if edited_command == "":
-                        print(colored("Empty command after edit, skipping.", "yellow"))
-                        execution_summary.append({"command": command_str, "status": "skipped_empty_after_edit"})
-                        self.interaction_logger.log_event(
-                            "command_skipped",
-                            {"command": command_str, "reason": "empty_after_edit"},
-                        )
-                        continue
-                    command_str = edited_command
-                    if not self._prompt_yes_no("Run the edited command? (y/N): "):
-                        print(colored("Skipping command", "yellow"))
-                        execution_summary.append({"command": command_str, "status": "skipped_after_edit"})
-                        self.interaction_logger.log_event(
-                            "command_skipped",
-                            {"command": command_str, "reason": "skipped_after_edit"},
-                        )
-                        continue
-                    action = "r"
-
-                if action == "s":
-                    print(colored("Skipping command", "yellow"))
-                    execution_summary.append({"command": command_str, "status": "skipped"})
-                    self.interaction_logger.log_event("command_skipped", {"command": command_str})
                     continue
-
-                guarded_command, skip_reason = self._guard_command_with_safe_mode(command_str)
-                if guarded_command is None:
-                    print(colored("Skipping command (safe mode).", "yellow"))
-                    execution_summary.append({"command": command_str, "status": "blocked_by_safe_mode"})
-                    self.interaction_logger.log_event(
-                        "command_skipped",
-                        {"command": command_str, "reason": skip_reason},
-                    )
-                    continue
-
-                output = self.command_helper.run_shell_command(guarded_command)
-                outputs.append(output)
-                execution_summary.append(
-                    {
-                        "command": guarded_command,
-                        "status": "executed",
-                        "returncode": output.get("returncode"),
-                        "timed_out": output.get("timed_out"),
-                        "interrupted": output.get("interrupted"),
-                    }
-                )
-                self.interaction_logger.log_event("command_executed", output)
-
-            self.interaction_logger.log_event("commands_execution_summary", execution_summary)
-
-            if not outputs:
-                print(colored("No commands were executed.", "yellow"))
+                if selected_index > index:
+                    selected_command_index = selected_index
+                    print(colored(f"Selecting command {selected_index}; skipping command {index}.", "yellow"))
+                    action = "s"
+                else:
+                    action = "r"
                 break
 
+            if action == "q":
+                execution_summary.append({"command": command_str, "status": "stopped_by_user"})
+                break
+
+            if action == "a":
+                run_all_remaining = True
+                action = "r"
+
+            if action == "e":
+                edited_command = self.session.prompt(
+                    ANSI(colored("Enter the modified command: ", "cyan")),
+                    default=command_str,
+                ).strip()
+                if edited_command == "":
+                    print(colored("Empty command after edit, skipping.", "yellow"))
+                    execution_summary.append({"command": command_str, "status": "skipped_empty_after_edit"})
+                    self.interaction_logger.log_event(
+                        "command_skipped",
+                        {"command": command_str, "reason": "empty_after_edit"},
+                    )
+                    continue
+                command_str = edited_command
+                if not self._prompt_yes_no("Run the edited command? (y/N): "):
+                    print(colored("Skipping command", "yellow"))
+                    execution_summary.append({"command": command_str, "status": "skipped_after_edit"})
+                    self.interaction_logger.log_event(
+                        "command_skipped",
+                        {"command": command_str, "reason": "skipped_after_edit"},
+                    )
+                    continue
+                action = "r"
+
+            if action == "s":
+                print(colored("Skipping command", "yellow"))
+                execution_summary.append({"command": command_str, "status": "skipped"})
+                self.interaction_logger.log_event("command_skipped", {"command": command_str})
+                continue
+
+            guarded_command, skip_reason = self._guard_command_with_safe_mode(command_str)
+            if guarded_command is None:
+                print(colored("Skipping command (safe mode).", "yellow"))
+                execution_summary.append({"command": command_str, "status": "blocked_by_safe_mode"})
+                self.interaction_logger.log_event(
+                    "command_skipped",
+                    {"command": command_str, "reason": skip_reason},
+                )
+                continue
+
+            output = self.command_helper.run_shell_command(guarded_command)
+            execution_record = {
+                "command": guarded_command,
+                "status": "executed",
+                "returncode": output.get("returncode"),
+                "timed_out": output.get("timed_out"),
+                "interrupted": output.get("interrupted"),
+            }
+            execution_summary.append(execution_record)
+            self.interaction_logger.log_event("command_executed", output)
+            executed_any = True
+
+            # For multi-command review flows, analyze each command immediately
+            # and keep the assistant in explanation-only mode (no new commands).
             self._sync_openai_session_context()
-            response, next_commands = self.openai_helper.send_commands_outputs(
-                outputs,
-                execution_summary=execution_summary,
+            response, _ = self.openai_helper.send_commands_outputs(
+                [output],
+                execution_summary=[execution_record],
+                allow_follow_up_commands=False,
             )
             self._print_assistant_response(response)
             self._print_token_usage()
-            if stop_after_batch:
-                break
-            commands = next_commands
+
+        self.interaction_logger.log_event("commands_execution_summary", execution_summary)
+        if not executed_any:
+            print(colored("No commands were executed.", "yellow"))
 
     def _process_user_input(self, user_input):
         if user_input.lower() == "q":
