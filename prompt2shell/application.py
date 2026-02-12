@@ -4,6 +4,8 @@ import sys
 from prompt_toolkit import ANSI, PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.history import FileHistory
+from prompt_toolkit.input.defaults import create_input
+from prompt_toolkit.output.defaults import create_output
 
 from .common import APP_NAME, colored, env_flag
 
@@ -26,9 +28,15 @@ class Application:
         if not FileHistoryPath.exists(default_history_path) and FileHistoryPath.exists(legacy_history_path):
             history_path = legacy_history_path
 
+        # Prefer terminal TTY for interactive prompts, even when stdin/stdout are piped.
+        # This avoids prompt glitches and EOF behavior after using pipe mode.
+        prompt_input = create_input(always_prefer_tty=True)
+        prompt_output = create_output(always_prefer_tty=True)
         self.session = PromptSession(
             history=FileHistory(history_path),
             auto_suggest=AutoSuggestFromHistory(),
+            input=prompt_input,
+            output=prompt_output,
         )
 
     @staticmethod
