@@ -409,8 +409,9 @@ class Application:
     def run(self, initial_prompt=None, exit_after_initial_prompt=False):
         """Runs the application."""
         os_name, shell_name = self.openai_helper.os_name, self.openai_helper.shell_name
+        model_name = getattr(self.openai_helper, "model_name", "unknown")
         has_initial_prompt = isinstance(initial_prompt, str) and initial_prompt.strip() != ""
-        print(colored(f"Your current environment: Shell={shell_name}, OS={os_name}", "green"))
+        print(colored(f"Your current environment: Shell={shell_name}, OS={os_name}, Model={model_name}", "green"))
         if not has_initial_prompt:
             print(colored("Type 'e' to enter manual command mode or 'q' to quit.\n", "green"))
 

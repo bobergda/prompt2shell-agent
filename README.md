@@ -50,6 +50,7 @@ Script options:
 ./prompt2shell.sh --add-alias
 ./prompt2shell.sh -o "find the 3 biggest files in this project"
 ./prompt2shell.sh --once "find the 3 biggest files in this project"
+./prompt2shell.sh -m5 "find the 3 biggest files in this project"
 ./prompt2shell.sh --model=gpt-4o-mini
 ./prompt2shell.sh --tokens=1200
 ./prompt2shell.sh --model=gpt-4o-mini --tokens=1200
@@ -75,7 +76,7 @@ export PROMPT2SHELL_COMMAND_TIMEOUT=300
 Startup:
 
 ```console
-Your current environment: Shell=bash, OS=Linux Ubuntu
+Your current environment: Shell=bash, OS=Linux Ubuntu, Model=gpt-4o-mini
 Safe mode: ON (use `safe on`, `safe off`, `safe`).
 Strict safe mode (read-only allowlist): OFF (use `strict on`, `strict off`, `strict`).
 Token usage display: ON (use `tokens on`, `tokens off`, `tokens`).
