@@ -7,14 +7,14 @@ APP_NAME = "Prompt2Shell Agent"
 
 # Built-in visual theme (no env-based color overrides).
 THEME_COLOR_MAP = {
-    "green": "cyan",     # prompts and general app info
-    "magenta": "white",  # assistant narrative text
-    "blue": "blue",      # command lines
+    "green": "green",    # prompts and positive status
+    "magenta": "magenta",  # assistant narrative text
+    "blue": "cyan",      # command lines (higher contrast than dark blue)
     "cyan": "cyan",
     "yellow": "yellow",
     "red": "red",
     "white": "white",
-    "grey": "grey",
+    "grey": "white",     # avoid low-contrast dim gray descriptions
 }
 
 THEME_ATTRS_MAP = {

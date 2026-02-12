@@ -41,7 +41,7 @@ This version uses the OpenAI **Responses API** with server-side conversation cha
    ```
    In pipe mode the app also adds an inferred source hint (for example, likely `ls -l`/`ll`, `df -h`, `ps`, JSON).
 3. Enter a task in plain language.
-4. For each proposed command choose: run, edit, skip, run-all-remaining, or stop.
+4. For each proposed command choose: run, edit, skip, run-all-remaining, stop, or type a command number to run that item.
 5. Runtime controls:
    - `safe on`, `safe off`, `safe`
    - `strict on`, `strict off`, `strict`

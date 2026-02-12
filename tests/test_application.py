@@ -36,7 +36,8 @@ class ApplicationRunBannerTests(unittest.TestCase):
 
         printed_lines = [str(call.args[0]) for call in print_mock.call_args_list if call.args]
         self.assertFalse(any("Type 'e' to enter manual command mode or 'q' to quit." in line for line in printed_lines))
-        self.assertTrue(any("Initial prompt: show files" in line for line in printed_lines))
+        self.assertTrue(any("Initial prompt:" in line for line in printed_lines))
+        self.assertTrue(any(line.strip() == "show files" for line in printed_lines))
         app._process_user_input.assert_called_once_with("show files")
 
     def test_run_shows_compact_preview_for_piped_initial_prompt(self):
@@ -49,6 +50,7 @@ class ApplicationRunBannerTests(unittest.TestCase):
                 app.run(initial_prompt=initial_prompt, exit_after_initial_prompt=True)
 
         printed_lines = [str(call.args[0]) for call in print_mock.call_args_list if call.args]
+        self.assertTrue(any("Initial prompt:" in line for line in printed_lines))
         self.assertTrue(any("[stdin attached]" in line for line in printed_lines))
         self.assertFalse(any("file1" in line for line in printed_lines))
         app._process_user_input.assert_called_once_with(initial_prompt)
@@ -85,6 +87,51 @@ class ApplicationInitTests(unittest.TestCase):
             output=fake_output,
         )
         self.assertIs(app.session, fake_session)
+
+
+class ApplicationCommandSelectionTests(unittest.TestCase):
+    def _build_exec_app(self):
+        app = Application.__new__(Application)
+        app.openai_helper = mock.Mock()
+        app.openai_helper.send_commands_outputs.return_value = (None, None)
+        app.command_helper = mock.Mock()
+        app.command_helper.run_shell_command.return_value = {
+            "returncode": 0,
+            "timed_out": False,
+            "interrupted": False,
+        }
+        app.interaction_logger = mock.Mock()
+        app.session = mock.Mock()
+        app._guard_command_with_safe_mode = mock.Mock(side_effect=lambda command: (command, None))
+        app._print_commands_batch = mock.Mock()
+        app._sync_openai_session_context = mock.Mock()
+        app._print_assistant_response = mock.Mock()
+        app._print_token_usage = mock.Mock()
+        return app
+
+    def test_prompt_command_action_accepts_numeric_selection(self):
+        app = self._build_exec_app()
+        app.session.prompt.return_value = "2"
+
+        with mock.patch("prompt2shell.application.colored", side_effect=lambda text, *_a, **_k: text):
+            action = app._prompt_command_action(index=1, total=3)
+
+        self.assertEqual(action, "2")
+
+    def test_execute_commands_runs_selected_command_by_number(self):
+        app = self._build_exec_app()
+        app._prompt_command_action = mock.Mock(side_effect=["2"])
+
+        commands = [
+            {"command": "echo one", "description": "first"},
+            {"command": "echo two", "description": "second"},
+        ]
+        with mock.patch("builtins.print"):
+            app.execute_commands(commands)
+
+        app._prompt_command_action.assert_called_once_with(1, 2)
+        app.command_helper.run_shell_command.assert_called_once_with("echo two")
+        app.openai_helper.send_commands_outputs.assert_called_once()
 
 
 if __name__ == "__main__":

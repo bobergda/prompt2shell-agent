@@ -130,7 +130,8 @@ class Application:
     def _prompt_command_action(self, index, total):
         prompt_text = (
             f"Command {index}/{total} action "
-            "[r=run, e=edit, s=skip, a=run all remaining, q=stop] (default s): "
+            f"[r=run, e=edit, s=skip, a=run all remaining, q=stop, 1-{total}=run by number] "
+            "(default s): "
         )
         while True:
             action = self.session.prompt(ANSI(colored(prompt_text, "green"))).strip().lower()
@@ -138,7 +139,11 @@ class Application:
                 return "s"
             if action in {"r", "e", "s", "a", "q", "y", "n"}:
                 return {"y": "r", "n": "s"}.get(action, action)
-            print(colored("Invalid choice. Use r/e/s/a/q.", "yellow"))
+            if action.isdigit():
+                selected_index = int(action)
+                if 1 <= selected_index <= total:
+                    return action
+            print(colored(f"Invalid choice. Use r/e/s/a/q or number 1-{total}.", "yellow"))
 
     def _prompt_yes_no(self, text):
         while True:
@@ -331,6 +336,7 @@ class Application:
             execution_summary = []
             run_all_remaining = False
             stop_after_batch = False
+            selected_command_index = None
 
             for index, command in enumerate(commands, start=1):
                 command_str = command.get("command", "").strip()
@@ -338,7 +344,29 @@ class Application:
                     execution_summary.append({"command": "", "status": "skipped_empty"})
                     continue
 
-                action = "r" if run_all_remaining else self._prompt_command_action(index, len(commands))
+                if run_all_remaining:
+                    action = "r"
+                elif selected_command_index is not None and index < selected_command_index:
+                    action = "s"
+                elif selected_command_index is not None and index == selected_command_index:
+                    action = "r"
+                    selected_command_index = None
+                else:
+                    action = self._prompt_command_action(index, len(commands))
+
+                while action.isdigit():
+                    selected_index = int(action)
+                    if selected_index < index:
+                        print(colored(f"Command {selected_index} was already processed; choose current or later.", "yellow"))
+                        action = self._prompt_command_action(index, len(commands))
+                        continue
+                    if selected_index > index:
+                        selected_command_index = selected_index
+                        print(colored(f"Selecting command {selected_index}; skipping command {index}.", "yellow"))
+                        action = "s"
+                    else:
+                        action = "r"
+                    break
 
                 if action == "q":
                     stop_after_batch = True
@@ -442,7 +470,9 @@ class Application:
             piped_marker = "\n\nPiped input:\n"
             if piped_marker in prompt_preview:
                 prompt_preview = f"{prompt_preview.split(piped_marker, 1)[0]}\n\n[stdin attached]"
-            print(colored(f"Initial prompt: {prompt_preview}", "green"))
+            print(colored("Initial prompt:", "cyan"))
+            print(colored(prompt_preview, "white"))
+            print()
             try:
                 if not self._process_user_input(initial_prompt):
                     return

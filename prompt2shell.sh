@@ -10,7 +10,7 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
 # Default values for environment variables
 export PROMPT2SHELL_LOG_ENABLED=1
 MODEL_VALUE="${OPENAI_MODEL:-gpt-4o-mini}"
-TOKENS_VALUE="${PROMPT2SHELL_MAX_OUTPUT_TOKENS:-2000}"
+TOKENS_VALUE="${PROMPT2SHELL_MAX_OUTPUT_TOKENS:-1200}"
 
 # Flags to control script behavior
 INSTALL_DEPS=0
