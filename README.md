@@ -90,7 +90,7 @@ export PROMPT2SHELL_COMMAND_TIMEOUT=300
 Startup:
 
 ```console
-Environment: shell=bash | OS=Linux Ubuntu | model=gpt-4o-mini | chat language=English
+Environment: shell=bash | OS=Linux Ubuntu | model=gpt-4o-mini | chat language=english
 Safe mode: ON (use `safe on`, `safe off`, `safe`).
 Strict safe mode (read-only allowlist): OFF (use `strict on`, `strict off`, `strict`).
 Token usage display: ON (use `tokens on`, `tokens off`, `tokens`).

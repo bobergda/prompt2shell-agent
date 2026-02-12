@@ -12,7 +12,7 @@ class ApplicationRunBannerTests(unittest.TestCase):
             os_name="Linux",
             shell_name="bash",
             model_name="gpt-test",
-            chat_language="polski",
+            chat_language="polish",
         )
         app.interaction_logger = mock.Mock()
         app.session = mock.Mock()
@@ -30,7 +30,7 @@ class ApplicationRunBannerTests(unittest.TestCase):
         printed_lines = [str(call.args[0]) for call in print_mock.call_args_list if call.args]
         self.assertTrue(
             any(
-                "Environment: shell=bash | OS=Linux | model=gpt-test | chat language=Polish" in line
+                "Environment: shell=bash | OS=Linux | model=gpt-test | chat language=polish" in line
                 for line in printed_lines
             )
         )

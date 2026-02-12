@@ -126,7 +126,7 @@ class OpenAIHelper:
                 "Prefer a direct final answer and avoid unnecessary follow-up command proposals."
             )
 
-        if self.chat_language == "polski":
+        if self.chat_language == "polish":
             instructions_parts.append(
                 "Language policy: respond in Polish for all user-facing text, including command descriptions. "
                 "Keep shell command strings unchanged."
@@ -148,8 +148,8 @@ class OpenAIHelper:
     @staticmethod
     def _normalize_chat_language(raw_language):
         normalized = str(raw_language or "").strip().lower()
-        if normalized in {"polski", "polish", "pl"}:
-            return "polski"
+        if normalized == "polish":
+            return "polish"
         return "english"
 
     @staticmethod

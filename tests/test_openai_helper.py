@@ -159,7 +159,7 @@ class OpenAIHelperTests(unittest.TestCase):
             os.environ,
             {
                 "OPENAI_API_KEY": "test-key",
-                "PROMPT2SHELL_CHAT_LANGUAGE": "polski",
+                "PROMPT2SHELL_CHAT_LANGUAGE": "polish",
             },
             clear=False,
         ):

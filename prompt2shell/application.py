@@ -60,15 +60,6 @@ class Application:
     def _show_tokens_status_text(self):
         return "ON" if self.show_tokens else "OFF"
 
-    @staticmethod
-    def _chat_language_label(raw_language):
-        normalized = str(raw_language or "").strip().lower()
-        if normalized in {"polski", "polish", "pl"}:
-            return "Polish"
-        if normalized in {"english", "en"}:
-            return "English"
-        return str(raw_language).strip() or "English"
-
     def _set_safe_mode(self, enabled):
         self.safe_mode_enabled = enabled
         print(colored(f"Safe mode: {self._safe_mode_status_text()}", "green" if enabled else "yellow"))
@@ -463,7 +454,7 @@ class Application:
         """Runs the application."""
         os_name, shell_name = self.openai_helper.os_name, self.openai_helper.shell_name
         model_name = getattr(self.openai_helper, "model_name", "unknown")
-        chat_language = self._chat_language_label(getattr(self.openai_helper, "chat_language", "english"))
+        chat_language = getattr(self.openai_helper, "chat_language", "english")
         has_initial_prompt = isinstance(initial_prompt, str) and initial_prompt.strip() != ""
         print(
             colored(
