@@ -63,6 +63,7 @@ class Application:
     def _set_safe_mode(self, enabled):
         self.safe_mode_enabled = enabled
         print(colored(f"Safe mode: {self._safe_mode_status_text()}", "green" if enabled else "yellow"))
+        self._sync_openai_session_context()
         self.interaction_logger.log_event("safe_mode_changed", {"enabled": enabled})
 
     def _set_safe_mode_strict(self, enabled):
@@ -71,6 +72,7 @@ class Application:
             f"Strict safe mode (read-only allowlist): {self._safe_mode_strict_status_text()}",
             "green" if enabled else "yellow",
         ))
+        self._sync_openai_session_context()
         self.interaction_logger.log_event("safe_mode_strict_changed", {"enabled": enabled})
 
     def _set_show_tokens(self, enabled):
@@ -106,6 +108,15 @@ class Application:
             return
         print(colored(response, "magenta"))
         self.interaction_logger.log("assistant", response)
+
+    def _sync_openai_session_context(self):
+        configure_context = getattr(self.openai_helper, "configure_session_context", None)
+        if not callable(configure_context):
+            return
+        configure_context(
+            safe_mode_enabled=self.safe_mode_enabled,
+            strict_safe_mode=self.safe_mode_strict,
+        )
 
     def _print_commands_batch(self, commands):
         print(colored("\nProposed commands:", "green"))
@@ -286,6 +297,7 @@ class Application:
         outputs = [command_output]
         execution_summary = [{"command": guarded_command, "status": "executed"}]
 
+        self._sync_openai_session_context()
         response, commands = self.openai_helper.send_commands_outputs(outputs, execution_summary=execution_summary)
         self._print_assistant_response(response)
         self._print_token_usage()
@@ -294,6 +306,7 @@ class Application:
 
     def auto_command_mode(self, user_prompt):
         """Auto command mode."""
+        self._sync_openai_session_context()
         commands_payload = self.openai_helper.get_commands(user_prompt)
         self._print_token_usage()
         self.interaction_logger.log_event("auto_mode_commands_payload", commands_payload)
@@ -395,6 +408,7 @@ class Application:
                 print(colored("No commands were executed.", "yellow"))
                 break
 
+            self._sync_openai_session_context()
             response, next_commands = self.openai_helper.send_commands_outputs(
                 outputs,
                 execution_summary=execution_summary,

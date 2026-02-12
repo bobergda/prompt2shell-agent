@@ -28,12 +28,17 @@ class OpenAIHelper:
         self._active_usage_summary = None
 
         self.os_name, self.shell_name = OSHelper.get_os_and_shell_info()
-        self.instructions = (
+        self.base_instructions = (
             "You are a shell command assistant. Prefer safe, idempotent commands first. "
+            "Prefer read-only inspection commands unless change is clearly required. "
             "For any command proposal, return it through the get_commands function. "
             "Include a short description for each command. "
             "If no command is needed, return an empty commands list with a helpful response."
         )
+        self.session_once_mode = False
+        self.session_has_piped_input = False
+        self.session_safe_mode_enabled = True
+        self.session_strict_safe_mode = False
 
         self.tools = [
             {
@@ -75,6 +80,50 @@ class OpenAIHelper:
                 },
             }
         ]
+
+    def configure_session_context(
+        self,
+        once_mode=None,
+        has_piped_input=None,
+        safe_mode_enabled=None,
+        strict_safe_mode=None,
+    ):
+        if once_mode is not None:
+            self.session_once_mode = bool(once_mode)
+        if has_piped_input is not None:
+            self.session_has_piped_input = bool(has_piped_input)
+        if safe_mode_enabled is not None:
+            self.session_safe_mode_enabled = bool(safe_mode_enabled)
+        if strict_safe_mode is not None:
+            self.session_strict_safe_mode = bool(strict_safe_mode)
+
+    def _build_instructions(self):
+        instructions_parts = [self.base_instructions]
+
+        if self.session_strict_safe_mode:
+            instructions_parts.append(
+                "Session context: strict safe mode is ON. "
+                "Only propose read-only commands and avoid commands that write or modify files."
+            )
+        elif self.session_safe_mode_enabled:
+            instructions_parts.append(
+                "Session context: safe mode is ON. "
+                "Avoid destructive commands and prefer low-risk alternatives."
+            )
+
+        if self.session_has_piped_input:
+            instructions_parts.append(
+                "Session context: piped command output is already provided. "
+                "Analyze provided input first before suggesting extra collection commands."
+            )
+
+        if self.session_once_mode:
+            instructions_parts.append(
+                "Session context: one-shot mode. "
+                "Prefer a direct final answer and avoid unnecessary follow-up command proposals."
+            )
+
+        return " ".join(instructions_parts)
 
     @staticmethod
     def _item_value(item, key, default=None):
@@ -139,7 +188,7 @@ class OpenAIHelper:
     def _create_response(self, input_data, tool_choice="auto"):
         request = {
             "model": self.model_name,
-            "instructions": self.instructions,
+            "instructions": self._build_instructions(),
             "input": input_data,
             "tools": self.tools,
             "tool_choice": tool_choice,

@@ -62,6 +62,63 @@ class OpenAIHelperTests(unittest.TestCase):
         self.assertEqual(fake_api.calls[0]["tool_choice"], {"type": "function", "name": "get_commands"})
         self.assertEqual(fake_api.calls[1]["tool_choice"], "none")
 
+    def test_instructions_include_session_mode_context(self):
+        fake_responses = [
+            types.SimpleNamespace(
+                id="resp_1",
+                usage=types.SimpleNamespace(input_tokens=10, output_tokens=20, total_tokens=30),
+                output=[
+                    types.SimpleNamespace(
+                        type="function_call",
+                        name="get_commands",
+                        arguments=json.dumps(
+                            {
+                                "commands": [],
+                                "response": "No commands needed.",
+                            }
+                        ),
+                        call_id="call_1",
+                        id="item_1",
+                    )
+                ],
+                output_text=None,
+            ),
+            types.SimpleNamespace(
+                id="resp_2",
+                usage=types.SimpleNamespace(input_tokens=2, output_tokens=3, total_tokens=5),
+                output=[],
+                output_text="Done",
+            ),
+        ]
+
+        class FakeResponsesAPI:
+            def __init__(self, queue):
+                self.queue = queue
+                self.calls = []
+
+            def create(self, **kwargs):
+                self.calls.append(kwargs)
+                return self.queue.pop(0)
+
+        fake_api = FakeResponsesAPI(fake_responses)
+        fake_client = types.SimpleNamespace(responses=fake_api)
+
+        with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=False):
+            with mock.patch("prompt2shell.openai_helper.OpenAI", return_value=fake_client):
+                helper = OpenAIHelper(model_name="gpt-test", max_output_tokens=200)
+                helper.configure_session_context(
+                    once_mode=True,
+                    has_piped_input=True,
+                    safe_mode_enabled=True,
+                    strict_safe_mode=True,
+                )
+                helper.get_commands("show files")
+
+        instructions = fake_api.calls[0]["instructions"]
+        self.assertIn("strict safe mode is ON", instructions)
+        self.assertIn("piped command output is already provided", instructions)
+        self.assertIn("one-shot mode", instructions)
+
 
 if __name__ == "__main__":
     unittest.main()

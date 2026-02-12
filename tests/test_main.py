@@ -84,6 +84,21 @@ class MainEntrypointTests(unittest.TestCase):
         self.assertEqual(call_kwargs["exit_after_initial_prompt"], False)
         self.assertIn("Piped input:\nhello", call_kwargs["initial_prompt"])
 
+    def test_main_passes_mode_context_to_openai_helper(self):
+        fake_openai_helper = mock.Mock()
+        fake_app = mock.Mock()
+        fake_app.openai_helper = fake_openai_helper
+
+        with self._stdin_patch(is_tty=False, text="hello\n"):
+            with mock.patch.dict("os.environ", {"PROMPT2SHELL_ONCE": "1"}, clear=False):
+                with mock.patch("prompt2shell.main.build_application", return_value=fake_app):
+                    main_module.main([])
+
+        fake_openai_helper.configure_session_context.assert_called_once_with(
+            once_mode=True,
+            has_piped_input=True,
+        )
+
     def test_infer_piped_source_description_detects_ls_long_listing(self):
         piped_text = (
             "total 8\n"

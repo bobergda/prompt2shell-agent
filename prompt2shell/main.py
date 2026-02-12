@@ -124,8 +124,15 @@ def main(argv=None):
         initial_prompt = build_prompt_from_pipe(initial_prompt, piped_input)
 
     once_mode = env_flag("PROMPT2SHELL_ONCE", False)
+    app = build_application()
+    configure_context = getattr(getattr(app, "openai_helper", None), "configure_session_context", None)
+    if callable(configure_context):
+        configure_context(
+            once_mode=once_mode,
+            has_piped_input=piped_input is not None,
+        )
 
-    build_application().run(initial_prompt=initial_prompt, exit_after_initial_prompt=once_mode)
+    app.run(initial_prompt=initial_prompt, exit_after_initial_prompt=once_mode)
 
 
 if __name__ == "__main__":
