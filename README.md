@@ -32,7 +32,7 @@ This version uses the OpenAI **Responses API** with server-side conversation cha
    ```
    One-shot mode (run prompt once and exit):
    ```shell
-   ./prompt2shell.sh --once "find the 3 biggest files in this project"
+   ./prompt2shell.sh -o "find the 3 biggest files in this project"
    ```
 3. Enter a task in plain language.
 4. For each proposed command choose: run, edit, skip, run-all-remaining, or stop.
@@ -48,6 +48,7 @@ Script options:
 ./prompt2shell.sh --tests
 ./prompt2shell.sh --update-requirements
 ./prompt2shell.sh --add-alias
+./prompt2shell.sh -o "find the 3 biggest files in this project"
 ./prompt2shell.sh --once "find the 3 biggest files in this project"
 ./prompt2shell.sh --model=gpt-4o-mini
 ./prompt2shell.sh --tokens=1200

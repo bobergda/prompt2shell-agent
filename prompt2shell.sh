@@ -46,7 +46,7 @@ for arg in "$@"; do
     --add-alias)
       ADD_ALIAS=1
       ;;
-    --once)
+    -o|--once)
       ONCE_MODE=1
       ;;
     --model=*)
@@ -128,7 +128,7 @@ Options:
   --tests                 Run unit tests (python -m unittest discover -s tests -v)
   --update-requirements   Upgrade required packages in .venv and rewrite requirements.txt
   --add-alias             Add/update alias p2s in ~/.bashrc for this project launcher
-  --once                  Exit after processing the initial CLI prompt
+  -o, --once              Exit after processing the initial CLI prompt
   --model=NAME            Set OPENAI_MODEL for this run (default: gpt-4o-mini)
   --tokens=NUMBER         Set PROMPT2SHELL_MAX_OUTPUT_TOKENS for this run (default: 1200)
   --help                  Show this help message
