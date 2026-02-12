@@ -4,7 +4,7 @@ import types
 import unittest
 from unittest import mock
 
-from prompt2shell_agent.openai_helper import OpenAIHelper
+from prompt2shell.openai_helper import OpenAIHelper
 
 
 class OpenAIHelperTests(unittest.TestCase):
@@ -50,7 +50,7 @@ class OpenAIHelperTests(unittest.TestCase):
         fake_client = types.SimpleNamespace(responses=fake_api)
 
         with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=False):
-            with mock.patch("prompt2shell_agent.openai_helper.OpenAI", return_value=fake_client):
+            with mock.patch("prompt2shell.openai_helper.OpenAI", return_value=fake_client):
                 helper = OpenAIHelper(model_name="gpt-test", max_output_tokens=200)
                 payload = helper.get_commands("show files")
 

@@ -13,18 +13,18 @@ This version uses the OpenAI **Responses API** with server-side conversation cha
 - Optional strict safe mode (read-only allowlist)
 - Command timeout handling that terminates the full process group
 - Opt-in JSONL logging with basic secret redaction and restrictive file permissions (`0600`)
-- Modular code layout in `prompt2shell_agent/` for easier maintenance and testing
+- Modular code layout in `prompt2shell/` for easier maintenance and testing
 
 ## Usage
 
 1. One-time setup:
    ```shell
-   ./prompt2shell-agent.sh --install
+   ./prompt2shell.sh --install
    export OPENAI_API_KEY="your-api-key"
    ```
 2. Run:
    ```shell
-   ./prompt2shell-agent.sh
+   ./prompt2shell.sh
    ```
 3. Enter a task in plain language.
 4. For each proposed command choose: run, edit, skip, run-all-remaining, or stop.
@@ -37,9 +37,9 @@ This version uses the OpenAI **Responses API** with server-side conversation cha
 Script options:
 
 ```shell
-./prompt2shell-agent.sh --tests
-./prompt2shell-agent.sh --update-requirements
-./prompt2shell-agent.sh --help
+./prompt2shell.sh --tests
+./prompt2shell.sh --update-requirements
+./prompt2shell.sh --help
 ```
 
 Optional environment variables:

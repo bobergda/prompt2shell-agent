@@ -6,7 +6,7 @@ import time
 import unittest
 from unittest import mock
 
-from prompt2shell_agent.command_helper import CommandHelper
+from prompt2shell.command_helper import CommandHelper
 
 
 class CommandRuntimeTests(unittest.TestCase):
@@ -72,7 +72,7 @@ class CommandRuntimeTests(unittest.TestCase):
 
         fake_process = FakeProcess()
 
-        with mock.patch("prompt2shell_agent.command_helper.subprocess.Popen", return_value=fake_process):
+        with mock.patch("prompt2shell.command_helper.subprocess.Popen", return_value=fake_process):
             with mock.patch.object(CommandHelper, "_terminate_process_tree") as terminate_process_tree:
                 result = CommandHelper.run_shell_command("echo hello")
 

@@ -1,6 +1,6 @@
 import unittest
 
-from prompt2shell_agent.command_helper import CommandHelper
+from prompt2shell.command_helper import CommandHelper
 
 
 class CommandHelperDetectionTests(unittest.TestCase):

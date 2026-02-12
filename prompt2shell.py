@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from prompt2shell_agent.main import main
+from prompt2shell.main import main
 
 
 if __name__ == "__main__":

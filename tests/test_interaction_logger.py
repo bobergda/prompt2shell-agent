@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from prompt2shell_agent.interaction_logger import InteractionLogger
+from prompt2shell.interaction_logger import InteractionLogger
 
 
 class InteractionLoggerTests(unittest.TestCase):
