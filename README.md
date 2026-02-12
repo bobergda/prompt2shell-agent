@@ -111,7 +111,7 @@ du -ah . | sort -rh | head -n 3
 ```
 
 ```console
-Command 1/1 action [r=run, e=edit, s=skip, a=run all remaining, q=stop] (default s): a
+Command 1/1 action [r=run, e=edit, s=skip, a=run all remaining, q=end batch, 1-1=run by number, Ctrl+C=exit loop] (default s): a
 ```
 
 ## Development
