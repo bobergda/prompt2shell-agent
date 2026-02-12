@@ -139,6 +139,8 @@ Options:
 
 Prompt mode:
   ./prompt2shell.sh "find 3 largest files"
+  ls | ./prompt2shell.sh
+  ls | ./prompt2shell.sh "summarize this output"
   ./prompt2shell.sh -- "prompt that starts with -"
 EOF
   exit 0

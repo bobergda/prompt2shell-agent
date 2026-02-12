@@ -34,6 +34,11 @@ This version uses the OpenAI **Responses API** with server-side conversation cha
    ```shell
    ./prompt2shell.sh -o "find the 3 biggest files in this project"
    ```
+   Pipe mode (stdin is used as prompt and exits after one run):
+   ```shell
+   ls | ./prompt2shell.sh
+   ls | ./prompt2shell.sh "summarize this output"
+   ```
 3. Enter a task in plain language.
 4. For each proposed command choose: run, edit, skip, run-all-remaining, or stop.
 5. Runtime controls:
@@ -54,6 +59,8 @@ Script options:
 ./prompt2shell.sh --model=gpt-4o-mini
 ./prompt2shell.sh --tokens=1200
 ./prompt2shell.sh --model=gpt-4o-mini --tokens=1200
+ls | ./prompt2shell.sh
+ls | ./prompt2shell.sh "summarize this output"
 ./prompt2shell.sh -- "prompt that starts with -"
 ./prompt2shell.sh --help
 ```
