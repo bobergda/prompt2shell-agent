@@ -35,6 +35,9 @@ class OpenAIHelper:
             "Include a short description for each command. "
             "If no command is needed, return an empty commands list with a helpful response."
         )
+        self.chat_language = self._normalize_chat_language(
+            os.getenv("PROMPT2SHELL_CHAT_LANGUAGE", "english")
+        )
         self.session_once_mode = False
         self.session_has_piped_input = False
         self.session_safe_mode_enabled = True
@@ -123,6 +126,17 @@ class OpenAIHelper:
                 "Prefer a direct final answer and avoid unnecessary follow-up command proposals."
             )
 
+        if self.chat_language == "polski":
+            instructions_parts.append(
+                "Language policy: respond in Polish for all user-facing text, including command descriptions. "
+                "Keep shell command strings unchanged."
+            )
+        else:
+            instructions_parts.append(
+                "Language policy: respond in English for all user-facing text, including command descriptions. "
+                "Keep shell command strings unchanged."
+            )
+
         return " ".join(instructions_parts)
 
     @staticmethod
@@ -130,6 +144,13 @@ class OpenAIHelper:
         if isinstance(item, dict):
             return item.get(key, default)
         return getattr(item, key, default)
+
+    @staticmethod
+    def _normalize_chat_language(raw_language):
+        normalized = str(raw_language or "").strip().lower()
+        if normalized in {"polski", "polish", "pl"}:
+            return "polski"
+        return "english"
 
     @staticmethod
     def _empty_usage_summary():

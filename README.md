@@ -90,12 +90,12 @@ export PROMPT2SHELL_COMMAND_TIMEOUT=300
 Startup:
 
 ```console
-Your current environment: Shell=bash, OS=Linux Ubuntu, Model=gpt-4o-mini
+Environment: shell=bash | OS=Linux Ubuntu | model=gpt-4o-mini | chat language=English
 Safe mode: ON (use `safe on`, `safe off`, `safe`).
 Strict safe mode (read-only allowlist): OFF (use `strict on`, `strict off`, `strict`).
 Token usage display: ON (use `tokens on`, `tokens off`, `tokens`).
 Logging: OFF (set `PROMPT2SHELL_LOG_ENABLED=1` to enable).
-Type 'e' to enter manual command mode or 'q' to quit.
+Type 'e' for manual mode, or 'q' to quit.
 ```
 
 Request and command:

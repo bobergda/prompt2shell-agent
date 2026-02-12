@@ -8,7 +8,12 @@ from prompt2shell.application import Application
 class ApplicationRunBannerTests(unittest.TestCase):
     def _build_app(self):
         app = Application.__new__(Application)
-        app.openai_helper = types.SimpleNamespace(os_name="Linux", shell_name="bash", model_name="gpt-test")
+        app.openai_helper = types.SimpleNamespace(
+            os_name="Linux",
+            shell_name="bash",
+            model_name="gpt-test",
+            chat_language="polski",
+        )
         app.interaction_logger = mock.Mock()
         app.session = mock.Mock()
         app._process_user_input = mock.Mock(return_value=False)
@@ -23,8 +28,13 @@ class ApplicationRunBannerTests(unittest.TestCase):
                 app.run(initial_prompt=None)
 
         printed_lines = [str(call.args[0]) for call in print_mock.call_args_list if call.args]
-        self.assertTrue(any("Your current environment: Shell=bash, OS=Linux, Model=gpt-test" in line for line in printed_lines))
-        self.assertTrue(any("Type 'e' to enter manual command mode or 'q' to quit." in line for line in printed_lines))
+        self.assertTrue(
+            any(
+                "Environment: shell=bash | OS=Linux | model=gpt-test | chat language=Polish" in line
+                for line in printed_lines
+            )
+        )
+        self.assertTrue(any("Type 'e' for manual mode, or 'q' to quit." in line for line in printed_lines))
 
     def test_run_hides_interactive_hint_with_initial_prompt(self):
         app = self._build_app()
@@ -35,7 +45,7 @@ class ApplicationRunBannerTests(unittest.TestCase):
                 app.run(initial_prompt="show files", exit_after_initial_prompt=True)
 
         printed_lines = [str(call.args[0]) for call in print_mock.call_args_list if call.args]
-        self.assertFalse(any("Type 'e' to enter manual command mode or 'q' to quit." in line for line in printed_lines))
+        self.assertFalse(any("Type 'e' for manual mode, or 'q' to quit." in line for line in printed_lines))
         self.assertTrue(any("Initial prompt:" in line for line in printed_lines))
         self.assertTrue(any(line.strip() == "show files" for line in printed_lines))
         app._process_user_input.assert_called_once_with("show files")
