@@ -401,23 +401,6 @@ class Application:
         """Runs the application."""
         os_name, shell_name = self.openai_helper.os_name, self.openai_helper.shell_name
         print(colored(f"Your current environment: Shell={shell_name}, OS={os_name}", "green"))
-        print(colored(
-            f"Safe mode: {self._safe_mode_status_text()} (use `safe on`, `safe off`, `safe`).",
-            "green",
-        ))
-        print(colored(
-            f"Strict safe mode (read-only allowlist): {self._safe_mode_strict_status_text()} "
-            "(use `strict on`, `strict off`, `strict`).",
-            "green",
-        ))
-        print(colored(
-            f"Token usage display: {self._show_tokens_status_text()} (use `tokens on`, `tokens off`, `tokens`).",
-            "green",
-        ))
-        if self.interaction_logger.enabled:
-            print(colored(f"Logging: ON ({self.interaction_logger.log_file})", "green"))
-        else:
-            print(colored("Logging: OFF (set `PROMPT2SHELL_LOG_ENABLED=1` to enable).", "yellow"))
         print(colored("Type 'e' to enter manual command mode or 'q' to quit.\n", "green"))
 
         while True:

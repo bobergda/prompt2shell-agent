@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# This script manages the virtual environment, dependencies, and execution of prompt2shell.py.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_DIR="$SCRIPT_DIR/.venv"
 REQ_FILE="$SCRIPT_DIR/requirements.txt"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
+
+# Default values for environment variables
+export PROMPT2SHELL_LOG_ENABLED=1
+MODEL_VALUE="${OPENAI_MODEL:-gpt-4o-mini}"
+TOKENS_VALUE="${PROMPT2SHELL_MAX_OUTPUT_TOKENS:-2000}"
+
+# Flags to control script behavior
 INSTALL_DEPS=0
 CREATED_VENV=0
 NEED_DEPS=0
@@ -24,6 +32,12 @@ for arg in "$@"; do
     update-requirements|--update-requirements)
       UPDATE_REQUIREMENTS=1
       ;;
+    --model=*)
+      MODEL_VALUE="${arg#*=}"
+      ;;
+    --tokens=*)
+      TOKENS_VALUE="${arg#*=}"
+      ;;
     -h|--help|help)
       SHOW_HELP=1
       ;;
@@ -41,9 +55,16 @@ Options:
   --install               Create venv (if needed) and install deps from requirements.txt
   --tests                 Run unit tests (python -m unittest discover -s tests -v)
   --update-requirements   Upgrade required packages in .venv and rewrite requirements.txt
+  --model=NAME            Set OPENAI_MODEL for this run (default: gpt-4o-mini)
+  --tokens=NUMBER         Set PROMPT2SHELL_MAX_OUTPUT_TOKENS for this run (default: 1200)
   --help                  Show this help message
 EOF
   exit 0
+fi
+
+if ! [[ "$TOKENS_VALUE" =~ ^[0-9]+$ ]] || [ "$TOKENS_VALUE" -le 0 ]; then
+  echo "[prompt2shell] Invalid --tokens value: $TOKENS_VALUE (expected positive integer)" >&2
+  exit 1
 fi
 
 if [ ! -d "$VENV_DIR" ]; then
@@ -106,4 +127,6 @@ if [ "$RUN_TESTS" -eq 1 ] || [ "$UPDATE_REQUIREMENTS" -eq 1 ]; then
   fi
 fi
 
+OPENAI_MODEL="$MODEL_VALUE" \
+PROMPT2SHELL_MAX_OUTPUT_TOKENS="$TOKENS_VALUE" \
 exec python "$SCRIPT_DIR/prompt2shell.py" "${FORWARDED_ARGS[@]}"

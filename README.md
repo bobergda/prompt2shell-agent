@@ -39,6 +39,9 @@ Script options:
 ```shell
 ./prompt2shell.sh --tests
 ./prompt2shell.sh --update-requirements
+./prompt2shell.sh --model=gpt-4o-mini
+./prompt2shell.sh --tokens=1200
+./prompt2shell.sh --model=gpt-4o-mini --tokens=1200
 ./prompt2shell.sh --help
 ```
 
