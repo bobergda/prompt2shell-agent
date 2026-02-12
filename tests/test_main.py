@@ -57,10 +57,10 @@ class MainEntrypointTests(unittest.TestCase):
             with mock.patch("prompt2shell.main.build_application", return_value=fake_app):
                 main_module.main([])
 
-        fake_app.run.assert_called_once_with(
-            initial_prompt="file1\nfile2",
-            exit_after_initial_prompt=False,
-        )
+        call_kwargs = fake_app.run.call_args.kwargs
+        self.assertEqual(call_kwargs["exit_after_initial_prompt"], False)
+        self.assertIn("Inferred source:", call_kwargs["initial_prompt"])
+        self.assertIn("Piped input:\nfile1\nfile2", call_kwargs["initial_prompt"])
 
     def test_main_combines_prompt_args_with_piped_input(self):
         fake_app = mock.Mock()
@@ -68,10 +68,10 @@ class MainEntrypointTests(unittest.TestCase):
             with mock.patch("prompt2shell.main.build_application", return_value=fake_app):
                 main_module.main(["summarize"])
 
-        fake_app.run.assert_called_once_with(
-            initial_prompt="summarize\n\nPiped input:\na.txt\nb.txt",
-            exit_after_initial_prompt=False,
-        )
+        call_kwargs = fake_app.run.call_args.kwargs
+        self.assertEqual(call_kwargs["exit_after_initial_prompt"], False)
+        self.assertTrue(call_kwargs["initial_prompt"].startswith("summarize\n\nPipeline context:"))
+        self.assertIn("Piped input:\na.txt\nb.txt", call_kwargs["initial_prompt"])
 
     def test_main_respects_explicit_once_env_value_when_piped(self):
         fake_app = mock.Mock()
@@ -80,10 +80,19 @@ class MainEntrypointTests(unittest.TestCase):
                 with mock.patch("prompt2shell.main.build_application", return_value=fake_app):
                     main_module.main([])
 
-        fake_app.run.assert_called_once_with(
-            initial_prompt="hello",
-            exit_after_initial_prompt=False,
+        call_kwargs = fake_app.run.call_args.kwargs
+        self.assertEqual(call_kwargs["exit_after_initial_prompt"], False)
+        self.assertIn("Piped input:\nhello", call_kwargs["initial_prompt"])
+
+    def test_infer_piped_source_description_detects_ls_long_listing(self):
+        piped_text = (
+            "total 8\n"
+            "-rw-r--r-- 1 user group 100 Jan 1 00:00 a.txt\n"
+            "drwxr-xr-x 2 user group 4096 Jan 1 00:00 dir\n"
         )
+
+        description = main_module.infer_piped_source_description(piped_text)
+        self.assertIn("ls -l", description)
 
 
 if __name__ == "__main__":

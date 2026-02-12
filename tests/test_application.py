@@ -39,6 +39,20 @@ class ApplicationRunBannerTests(unittest.TestCase):
         self.assertTrue(any("Initial prompt: show files" in line for line in printed_lines))
         app._process_user_input.assert_called_once_with("show files")
 
+    def test_run_shows_compact_preview_for_piped_initial_prompt(self):
+        app = self._build_app()
+        app._process_user_input = mock.Mock(return_value=True)
+        initial_prompt = "summarize\n\nPipeline context: likely ls.\n\nPiped input:\nfile1\nfile2"
+
+        with mock.patch("prompt2shell.application.colored", side_effect=lambda text, *_a, **_k: text):
+            with mock.patch("builtins.print") as print_mock:
+                app.run(initial_prompt=initial_prompt, exit_after_initial_prompt=True)
+
+        printed_lines = [str(call.args[0]) for call in print_mock.call_args_list if call.args]
+        self.assertTrue(any("[stdin attached]" in line for line in printed_lines))
+        self.assertFalse(any("file1" in line for line in printed_lines))
+        app._process_user_input.assert_called_once_with(initial_prompt)
+
 
 class ApplicationInitTests(unittest.TestCase):
     def test_init_prefers_tty_io_for_prompt_session(self):

@@ -39,6 +39,7 @@ This version uses the OpenAI **Responses API** with server-side conversation cha
    ls | ./prompt2shell.sh
    ls | ./prompt2shell.sh "summarize this output"
    ```
+   In pipe mode the app also adds an inferred source hint (for example, likely `ls -l`/`ll`, `df -h`, `ps`, JSON).
 3. Enter a task in plain language.
 4. For each proposed command choose: run, edit, skip, run-all-remaining, or stop.
 5. Runtime controls:

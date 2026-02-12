@@ -424,7 +424,11 @@ class Application:
             print(colored("Type 'e' to enter manual command mode or 'q' to quit.\n", "green"))
 
         if has_initial_prompt:
-            print(colored(f"Initial prompt: {initial_prompt}", "green"))
+            prompt_preview = initial_prompt
+            piped_marker = "\n\nPiped input:\n"
+            if piped_marker in prompt_preview:
+                prompt_preview = f"{prompt_preview.split(piped_marker, 1)[0]}\n\n[stdin attached]"
+            print(colored(f"Initial prompt: {prompt_preview}", "green"))
             try:
                 if not self._process_user_input(initial_prompt):
                     return

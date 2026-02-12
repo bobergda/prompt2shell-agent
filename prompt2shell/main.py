@@ -1,4 +1,6 @@
+import json
 import os
+import re
 import sys
 
 from .application import Application
@@ -6,6 +8,9 @@ from .command_helper import CommandHelper
 from .common import env_flag
 from .interaction_logger import InteractionLogger
 from .openai_helper import OpenAIHelper
+
+
+LS_LONG_ENTRY_PATTERN = re.compile(r"^[bcdlps-][rwxstST-]{9}\s+")
 
 
 def read_piped_input():
@@ -29,6 +34,62 @@ def read_piped_input():
     if piped_text == "":
         return None
     return piped_text
+
+
+def infer_piped_source_description(piped_text):
+    lines = [line.strip() for line in piped_text.splitlines() if line.strip()]
+    if not lines:
+        return "shell command output"
+
+    first_line = lines[0]
+
+    try:
+        parsed = json.loads(piped_text)
+        if isinstance(parsed, (dict, list)):
+            return "JSON data"
+    except (json.JSONDecodeError, TypeError, ValueError):
+        pass
+
+    long_ls_entries = sum(1 for line in lines if LS_LONG_ENTRY_PATTERN.match(line))
+    if first_line.startswith("total ") and long_ls_entries >= 1:
+        return "likely `ls -l` or `ll` output (detailed directory listing)"
+
+    if first_line.startswith("Filesystem") and ("Mounted on" in first_line or "Use%" in first_line):
+        return "likely `df -h` output (filesystem usage)"
+
+    if (first_line.startswith("PID") or first_line.startswith("USER")) and ("CMD" in first_line or "COMMAND" in first_line):
+        return "likely `ps` output (process list)"
+
+    if first_line.startswith("On branch ") or "nothing to commit" in piped_text:
+        return "likely `git status` output"
+
+    simple_name_lines = 0
+    for line in lines:
+        if " " in line or "\t" in line:
+            continue
+        simple_name_lines += 1
+    if len(lines) >= 3 and simple_name_lines / len(lines) >= 0.7:
+        return "likely `ls` output (list of names)"
+
+    return "shell command output"
+
+
+def build_prompt_from_pipe(user_prompt, piped_input):
+    source_description = infer_piped_source_description(piped_input)
+
+    if isinstance(user_prompt, str) and user_prompt.strip() != "":
+        return (
+            f"{user_prompt}\n\n"
+            f"Pipeline context: {source_description}.\n"
+            "Use the piped command output below as primary input.\n\n"
+            f"Piped input:\n{piped_input}"
+        )
+
+    return (
+        "Describe and analyze the following piped command output. "
+        f"Inferred source: {source_description}.\n\n"
+        f"Piped input:\n{piped_input}"
+    )
 
 
 def build_application():
@@ -59,10 +120,8 @@ def main(argv=None):
         initial_prompt = None
 
     piped_input = read_piped_input()
-    if initial_prompt is not None and piped_input is not None:
-        initial_prompt = f"{initial_prompt}\n\nPiped input:\n{piped_input}"
-    elif initial_prompt is None and piped_input is not None:
-        initial_prompt = piped_input
+    if piped_input is not None:
+        initial_prompt = build_prompt_from_pipe(initial_prompt, piped_input)
 
     once_mode = env_flag("PROMPT2SHELL_ONCE", False)
 
