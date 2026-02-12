@@ -19,6 +19,7 @@ NEED_DEPS=0
 RUN_TESTS=0
 UPDATE_REQUIREMENTS=0
 SHOW_HELP=0
+ADD_ALIAS=0
 FORWARDED_ARGS=()
 
 for arg in "$@"; do
@@ -31,6 +32,9 @@ for arg in "$@"; do
       ;;
     update-requirements|--update-requirements)
       UPDATE_REQUIREMENTS=1
+      ;;
+    add-alias|--add-alias)
+      ADD_ALIAS=1
       ;;
     --model=*)
       MODEL_VALUE="${arg#*=}"
@@ -47,6 +51,55 @@ for arg in "$@"; do
   esac
 done
 
+add_p2s_alias() {
+  local bashrc_file="${HOME}/.bashrc"
+  local alias_name="p2s"
+  local alias_target="$SCRIPT_DIR/prompt2shell.sh"
+  local alias_value
+  local alias_line
+
+  alias_value="$(printf '%q' "$alias_target")"
+  alias_line="alias ${alias_name}=${alias_value}"
+
+  if [ ! -f "$bashrc_file" ]; then
+    touch "$bashrc_file"
+  fi
+
+  if grep -Fqx "$alias_line" "$bashrc_file"; then
+    echo "[prompt2shell] Alias ${alias_name} already configured in $bashrc_file"
+    echo "[prompt2shell] Run 'source $bashrc_file' or restart your shell to use '${alias_name}'."
+    return 0
+  fi
+
+  if grep -Eq "^[[:space:]]*alias[[:space:]]+${alias_name}=" "$bashrc_file"; then
+    local tmp_file
+    tmp_file="$(mktemp)"
+    awk -v alias_name="$alias_name" -v alias_line="$alias_line" '
+      BEGIN { replaced = 0 }
+      $0 ~ "^[[:space:]]*alias[[:space:]]+" alias_name "=" {
+        if (replaced == 0) {
+          print alias_line
+          replaced = 1
+        }
+        next
+      }
+      { print }
+      END {
+        if (replaced == 0) {
+          print alias_line
+        }
+      }
+    ' "$bashrc_file" > "$tmp_file"
+    mv "$tmp_file" "$bashrc_file"
+    echo "[prompt2shell] Updated alias ${alias_name} in $bashrc_file"
+  else
+    printf "\n%s\n" "$alias_line" >> "$bashrc_file"
+    echo "[prompt2shell] Added alias ${alias_name} to $bashrc_file"
+  fi
+
+  echo "[prompt2shell] Run 'source $bashrc_file' or restart your shell to use '${alias_name}'."
+}
+
 if [ "$SHOW_HELP" -eq 1 ]; then
   cat <<'EOF'
 Usage: ./prompt2shell.sh [options] [-- app_args...]
@@ -55,10 +108,19 @@ Options:
   --install               Create venv (if needed) and install deps from requirements.txt
   --tests                 Run unit tests (python -m unittest discover -s tests -v)
   --update-requirements   Upgrade required packages in .venv and rewrite requirements.txt
+  --add-alias             Add/update alias p2s in ~/.bashrc for this project launcher
   --model=NAME            Set OPENAI_MODEL for this run (default: gpt-4o-mini)
   --tokens=NUMBER         Set PROMPT2SHELL_MAX_OUTPUT_TOKENS for this run (default: 1200)
   --help                  Show this help message
 EOF
+  exit 0
+fi
+
+if [ "$ADD_ALIAS" -eq 1 ]; then
+  add_p2s_alias
+fi
+
+if [ "$ADD_ALIAS" -eq 1 ] && [ "$INSTALL_DEPS" -eq 0 ] && [ "$RUN_TESTS" -eq 0 ] && [ "$UPDATE_REQUIREMENTS" -eq 0 ] && [ "${#FORWARDED_ARGS[@]}" -eq 0 ]; then
   exit 0
 fi
 
