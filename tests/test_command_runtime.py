@@ -1,7 +1,9 @@
 import io
 import os
 import re
+import shlex
 import signal
+import sys
 import time
 import unittest
 from unittest import mock
@@ -15,8 +17,9 @@ class CommandRuntimeTests(unittest.TestCase):
         os.environ["PROMPT2SHELL_COMMAND_TIMEOUT"] = "1"
 
         try:
+            python_executable = shlex.quote(sys.executable)
             command = (
-                'python -c "import subprocess,time,sys; '
+                f'{python_executable} -c "import subprocess,time,sys; '
                 "p=subprocess.Popen(['sleep','30']); "
                 'print(p.pid); sys.stdout.flush(); time.sleep(30)"'
             )
